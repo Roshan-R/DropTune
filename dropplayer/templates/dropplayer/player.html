@@ -2,84 +2,102 @@
 {% block content %}
 {% load static %}
 
-<audio autoplay controls id="player"></audio>
-<button onclick="next()">next</button>
 <br>
-<div class="nowplaying" style="color: var(--acc);"></div>
+<br>
+<br>
+<br>
+<br>
+<div>
+<audio autoplay controls id="player" style="display: none;"></audio>
 <form action="/player" method="post" enctype="multipart/form-data" id='endconfirm'>
-{% csrf_token %}
+    {% csrf_token %}
     {{ endconfirm }}
-<input type="submit" value="Submit" id="ender" hidden>
+    <input type="submit" value="Submit" id="ender" hidden>
+    <button onclick="next()" style="display: none;" id="nextsub">Next</button>
 </form>
-
-
+</div>
+<div class="playerpage">
+    <img src="data:image/png;base64, {{ albumart }}" alt="Album Art not available" class="albumart">
+    <p class="songtitle">{{ metadata.title }}</p>
+    <p class="artist">{{ metadata.artist }}</p>
+    <p class="album">{{ metadata.album }}</p>
+    <div class="controls">
+        <div class="playbutton-container">
+            <input type="checkbox" name="playcontrol" id="play" checked>
+            <label for="play" onclick="playpause()">
+                <div class="playbutton"></div>
+            </label>
+        </div>
+        <div class="nextbtn-container">
+            <div class="next" onclick="document.getElementById('nextsub').click()">
+                <div class="nex"></div>
+                <div class="nex"></div>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
-    window.onload = function(){
-        document.getElementById('player').play();
-        document.getElementById('id_complete').value = 'ended'
-        if (document.getElementById('player').getAttribute('src') === "undefined") {
-            alert("Drop a song from DJ mode from any device!");
-        window.location = '/';
+    //Play button mechanics
+    var playinput = document.getElementById("play");
+    function playpause() {
+        if (playinput.checked == false) {
+            player.play()
+        }
+        else{
+            player.pause()
         }
     }
+    
+    
 
-    var songs = [
+    //song array
+    var song_list = [
         {% for song in songlist %}
         "{{ song }}",
         {% endfor %}
-    ]
-    for (let i = 0; i < songs.length; i++) {
-        songs[i] = songs[i].replace(/&#x27;/g, "'");      
-    }
-    var i = 0;
-    var music_player = document.getElementById('player');
-    `function next(){
-        location.reload()
-        if (i === songs.length - 1) {
-            i=0;
-        }
-        else{
-            i++;
-        }
-        music_player.src = songs[i];
-    }`
-    if (music_player === null){
-        throw "Does not exist"
-    }
-    else{
-        music_player.src = songs[i];
-        document.getElementsByClassName('nowplaying')[0].innerHTML = songs[i].slice(25, );
-        music_player.addEventListener('ended', next, false);
-    }
-    var flag = 0;
-    function next(){
-        music_player.pause();
-        music_player.src = '';
-        if (i === songs.length - 1) {
-            i=0;
-        }
-        else{
-            i++;
-        }
-        music_player.src = songs[i];
-        console.log(i);
-        if (i!=0){
-            location.href = '/loading';
-            document.getElementById('endconfirm').submit();
-        }
-        else{
-            location.href = '/loading';
-            music_player.src = songs[i+1];
-            document.getElementById('endconfirm').submit();
-        }
-        
-        flag = 1;
-    }
-    if (flag == 1) {
+    ];
 
-        flag = 0;
-        location.reload();
+
+    for (let i = 0; i < song_list.length; i++) {
+        song_list[i] = song_list[i].replace(/&#x27;/g, "'");     
+    } //Unicode character correction for song names that have apostrophe in them.
+
+
+    var player = document.getElementById('player');
+
+    player.src = song_list[0]; //loading first song from song list
+
+    //Checking whether playlist is empty
+    if(song_list.length == 0){
+        alert("Playlist empty. Please drop a song from DJ mode.");
+        location.href = "/";
+    }
+
+
+    player.play();
+    //next function to send post request to backend and delete song
+    function next() {
+        player.src = ' ';
+        document.getElementById('ender').click();
+        location.href = "/loading"
     }
     
+    if (player.paused){
+            playinput.checked == false;
+        }
+    //function for avoiding repeated post requests on reloads (sort of a noob method, ik xP)
+    var flag = 0;
+    function reloadprotection() {
+        if (flag == 0)
+        {location.href = "/loading";
+        flag = 1;}
+        else{
+            flag = 0;
+        }
+    }
+    document.addEventListener('reload', reloadprotection);
+
+    
 </script>
+
 {% endblock %}
